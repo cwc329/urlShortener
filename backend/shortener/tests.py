@@ -11,12 +11,13 @@ class ShortURLCreationTest(TestCase):
     test_username = "dev_test"
     test_password = "dev_test"
 
-    def __init__(self, *args, **kwargs):
-        super(ShortURLCreationTest, self).__init__(*args, **kwargs)
-        call_command("migrate", "auth")
+    @classmethod
+    def setUpTestData(cls):
+        User.objects.create_user(username=cls.test_username, password=cls.test_password)
 
     def test_create_short_url(self):
-        user = User.objects.create_user(username="test")
+        user = User.objects.get(username=self.test_username)
+        self.client.login(username=self.test_username, password=self.test_password)
         response = self.client.post(
             reverse("short-url"), {"long_url": "https://example.com"}
         )
@@ -26,6 +27,7 @@ class ShortURLCreationTest(TestCase):
         self.assertEqual(url.created_by, user)
 
     def test_invalid_url(self):
+        self.client.login(username=self.test_username, password=self.test_password)
         response = self.client.post(reverse("short-url"), {"long_url": "invalid-url"})
         self.assertEqual(response.status_code, 400)
         self.assertIn("Enter a valid URL.", response.json().get("long_url", []))
@@ -67,7 +69,15 @@ class RequestLoggingTest(TestCase):
 
 
 class EdgeCaseTest(TestCase):
+    test_username = "dev_test"
+    test_password = "dev_test"
+
+    @classmethod
+    def setUpTestData(cls):
+        User.objects.create_user(username=cls.test_username, password=cls.test_password)
+
     def test_missing_long_url(self):
+        self.client.login(username=self.test_username, password=self.test_password)
         response = self.client.post(reverse("short-url"), {})
         self.assertEqual(response.status_code, 400)
         self.assertIn("This field is required.", response.json().get("long_url", []))

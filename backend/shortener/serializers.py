@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import URL
+from .models import RequestLog, URL
 from urllib.parse import urlparse
 
 
@@ -20,3 +20,25 @@ class URLSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Only HTTP and HTTPS URLs are allowed.")
 
         return value
+
+
+class RequestLogSerializer(serializers.ModelSerializer):
+    short_url = serializers.CharField(source="short_url.short_url", read_only=True)
+    long_url = serializers.CharField(source="short_url.long_url", read_only=True)
+
+    class Meta:
+        model = RequestLog
+        fields = [
+            "id",
+            "long_url",
+            "short_url",
+            "source",
+            "time",
+        ]
+        read_only_fields = [
+            "id",
+            "long_url",
+            "short_url",
+            "source",
+            "time",
+        ]

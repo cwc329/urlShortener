@@ -28,9 +28,6 @@ SECRET_KEY = "django-insecure--%%*35gr3s#xnzwqpj%=k&26%d8y^5x&79aony-z3+tl#j%+5g
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", cast=bool, default=False)
 
-ALLOWED_HOSTS = ["*"]
-
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -142,7 +139,8 @@ AUTHENTICATION_BACKENDS = [
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APP": {
-            "key": "",
+            "client_id": config("GOOGLE_CLIENT_ID"),
+            "secret": config("GOOGLE_CLIENT_SECRET"),
         },
         "SCOPE": [
             "profile",
@@ -154,9 +152,40 @@ SOCIALACCOUNT_PROVIDERS = {
         "OAUTH_PKCE_ENABLED": True,
         "METHOD": "oauth2",
         "VERIFIED_EMAIL": True,
-    }
+    },
+    "facebook": {
+        "APP": {
+            "client_id": config("FACEBOOK_CLIENT_ID"),
+            "secret": config("FACEBOOK_CLIENT_SECRET"),
+        },
+        "METHOD": "oauth2",  # Set to 'js_sdk' to use the Facebook connect SDK
+        "SDK_URL": "//connect.facebook.net/{locale}/sdk.js",
+        "SCOPE": ["email", "public_profile"],
+        "AUTH_PARAMS": {"auth_type": "reauthenticate"},
+        "INIT_PARAMS": {"cookie": True},
+        "FIELDS": [
+            "id",
+            "first_name",
+            "last_name",
+            "middle_name",
+            "name",
+            "name_format",
+            "picture",
+            "short_name",
+            "email",
+        ],
+        "EXCHANGE_TOKEN": True,
+        "VERIFIED_EMAIL": True,
+        "VERSION": "v21.0",
+        "GRAPH_API_URL": "https://graph.facebook.com/v21.0",
+    },
 }
 
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",  # Required for allauth session management
+    ],
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -179,9 +208,7 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React Development Server
-    "http://127.0.0.1:3000",  # React Development Server
-    "https://example.com",  # Production Frontend
-]
+HEADLESS_FRONTEND_URLS = {
+    "account_signup": "/account/signup",
+    "socialaccount_login_error": "/account/provider/callback",
+}
