@@ -1,6 +1,37 @@
 version: '3.8'
 
 services:
+  frontend:
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile
+    ports:
+      - 3000:80
+    depends_on:
+      - backend
+      - db
+
+  backend:
+    env_file:
+      - ./.env
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      FACEBOOK_CLIENT_ID: ${FACEBOOK_CLIENT_ID}
+      FACEBOOK_CLIENT_SECRET: ${FACEBOOK_CLIENT_SECRET}
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    depends_on:
+      db:
+        condition: service_healthy
   db:
     env_file:
       - .env
@@ -15,6 +46,10 @@ services:
       - ./mysql-init:/docker-entrypoint-initdb.d # Initialization scripts
     ports:
       - ${DB_PORT}:3306
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      timeout: 20s
+      retries: 10
   proxy:
     env_file:
       - .env
