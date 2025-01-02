@@ -32,6 +32,9 @@ class ShortURLCreationTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Enter a valid URL.", response.json().get("long_url", []))
 
+    # TODO: add tests for GET /shortUrl/
+    # def test_get_short_urls(self):
+
 
 class RedirectShortURLTest(TestCase):
     def setUp(self):
