@@ -19,7 +19,7 @@ export default function Login() {
       {hasProviders
         ? <>
           <h2>Or use a third-party</h2>
-          <ProviderList callbackURL='/account/provider/callback' />
+          <ProviderList callbackURL={`${window.location.origin}/account/provider/callback`} />
         </>
         : null}
     </div>

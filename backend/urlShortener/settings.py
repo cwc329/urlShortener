@@ -31,6 +31,7 @@ DEBUG = config("DEBUG", cast=bool, default=False)
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=str, default="").split(",")  # type:ignore
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=str, default="").split(",")  # type:ignore
 
 # Application definition
 

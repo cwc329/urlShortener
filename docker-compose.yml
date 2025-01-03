@@ -43,7 +43,6 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./mysql-init:/docker-entrypoint-initdb.d # Initialization scripts
     ports:
       - ${DB_PORT}:3306
     healthcheck:
@@ -59,6 +58,8 @@ services:
       - ${APP_PORT:-10000}:10000
     volumes:
       - ./traefik.toml:/etc/traefik/traefik.toml
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
 volumes:
   mysql-data:

@@ -23,7 +23,9 @@ services:
     ports:
       - ${APP_PORT:-10000}:10000
     volumes:
-      - ./traefik.toml:/etc/traefik/traefik.toml
+      - ./traefik-dev.toml:/etc/traefik/traefik.toml
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
 volumes:
   mysql-data:
