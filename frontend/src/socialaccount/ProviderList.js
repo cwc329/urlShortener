@@ -3,7 +3,7 @@ import { redirectToProvider } from '../lib/allauth'
 import Button from '../components/Button'
 import GoogleOneTap from './GoogleOneTap'
 
-export default function ProviderList (props) {
+export default function ProviderList(props) {
   const config = useConfig()
   const providers = config.data.socialaccount.providers
   if (!providers.length) {

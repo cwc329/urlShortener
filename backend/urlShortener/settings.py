@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import sys
 
-from decouple import config
+from decouple import config, Csv
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,10 +27,18 @@ SECRET_KEY = config("DJANGO_SECRET")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", cast=bool, default=False)
+USE_X_FORWARDED_HOST = config("USE_X_FORWARDED_HOST", cast=bool, default=False)
+SECURE_PROXY_SSL_HEADER = config(
+    "SECURE_PROXY_SSL_HEADER",
+    cast=Csv(post_process=tuple),  # type:ignore
+    default=None,
+)
+
 
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=str, default="").split(",")  # type:ignore
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", cast=str, default="").split(",")  # type:ignore
 
 # Application definition
 
@@ -191,6 +199,12 @@ REST_FRAMEWORK = {
     ],
 }
 
+HEADLESS_FRONTEND_URLS = {
+    "account_signup": "/account/signup",
+    "socialaccount_login_error": "/account/provider/callback",
+}
+HEADLESS_ONLY = True
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -212,7 +226,3 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-HEADLESS_FRONTEND_URLS = {
-    "account_signup": "/account/signup",
-    "socialaccount_login_error": "/account/provider/callback",
-}

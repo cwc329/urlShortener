@@ -20,9 +20,6 @@ watch = true
 [entryPoints]
 [entryPoints.web]
 address = ":10000"
-# use this in a secure reverse proxy environment
-[entryPoints.web.forwardedHeaders]
-insecure = true
 
 [http.routers]
 
@@ -40,7 +37,7 @@ entrypoints = ["web"]
 [http.services]
 [http.services.react.loadBalancer]
 [[http.services.react.loadBalancer.servers]]
-url = "http://frontend:80"
+url = "http://host.docker.internal:3000"
 [http.services.django.loadBalancer]
 [[http.services.django.loadBalancer.servers]]
-url = "http://backend:8000"
+url = "http://host.docker.internal:8000"
