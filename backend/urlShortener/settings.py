@@ -34,6 +34,10 @@ SECURE_PROXY_SSL_HEADER = config(
     default=None,
 )
 
+APP_SHORT_URL_PREFIX = config(
+    "APP_SHORT_URL_PREFIX", default="http://localhost:10000/shortUrl/"
+)
+
 HEADLESS_ONLY = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True

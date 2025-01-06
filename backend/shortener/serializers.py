@@ -1,13 +1,21 @@
+from django.conf import settings
 from rest_framework import serializers
-from .models import RequestLog, URL
 from urllib.parse import urlparse
+from .models import RequestLog, URL
 
 
 class URLSerializer(serializers.ModelSerializer):
+    full_short_url = serializers.SerializerMethodField()
+
     class Meta:
         model = URL
-        fields = ["id", "long_url", "short_url"]
-        read_only_fields = ["short_url"]
+        fields = ["id", "long_url", "short_url", "full_short_url"]
+        read_only_fields = ["short_url", "full_short_url"]
+
+    def get_full_short_url(self, obj):
+        # Add the location prefix before the short URL
+        location_prefix = settings.APP_SHORT_URL_PREFIX
+        return f"{location_prefix}{obj.short_url}"
 
     def validate_long_url(self, value):
         """
@@ -42,3 +50,11 @@ class RequestLogSerializer(serializers.ModelSerializer):
             "source",
             "time",
         ]
+
+
+class URLWithLogsSerializer(serializers.ModelSerializer):
+    logs = RequestLogSerializer(many=True)
+
+    class Meta:
+        model = URL
+        fields = ["short_url", "long_url", "logs"]

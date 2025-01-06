@@ -27,7 +27,7 @@ function createRouter(config) {
       children: [
         {
           path: '/',
-          element: <Home />
+          element: <AuthenticatedRoute><Home /></AuthenticatedRoute>,
         },
         {
           path: '/dashboard',

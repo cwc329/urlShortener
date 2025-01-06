@@ -1,9 +1,8 @@
 import hashlib
-from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.db import transaction
+from django.db import models, transaction
 from django.http import HttpRequest, HttpResponseRedirect
 from django.utils import timezone
 from rest_framework import status
@@ -11,8 +10,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import URL, RequestLog
-from .serializers import RequestLogSerializer, URLSerializer
+from .models import RequestLog, URL
+from .serializers import URLWithLogsSerializer, URLSerializer
 from .tasks import store_request_log
 
 
@@ -59,14 +58,61 @@ class ShortUrlView(APIView):
         return Response(URLSerializer(url).data, status=status.HTTP_201_CREATED)
 
     def get(self, request: HttpRequest):
-        thirty_days_ago = timezone.now() - timedelta(days=30)
         user = request.user
-        logs = RequestLog.objects.select_related("short_url").filter(
-            short_url__created_by=user,
-            time__gte=thirty_days_ago,
-        )
+        urls = URL.objects.filter(created_by=user)
 
-        return Response(RequestLogSerializer(logs, many=True).data)
+        return Response(URLSerializer(urls, many=True).data)
+
+
+class ShortUrlDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: HttpRequest, short_url: str):
+        try:
+            # find the user
+            user_id = None
+            user = None
+            if request.user.is_authenticated:
+                user_id = request.user.id  # type:ignore
+                user = User.objects.get(id=user_id)
+
+            url_with_logs = (
+                URL.objects.filter(short_url=short_url, created_by=user)
+                .prefetch_related(
+                    models.Prefetch(
+                        "requestlog_set",
+                        queryset=RequestLog.objects.order_by("-time")[:20],
+                        to_attr="logs",
+                    )
+                )
+                .first()
+            )
+
+            if not url_with_logs:
+                return Response(
+                    {"error": "Short URL not found."}, status=status.HTTP_404_NOT_FOUND
+                )
+            # Aggregate click count by source
+            aggregated_data = (
+                RequestLog.objects.filter(short_url=short_url)
+                .values("source")
+                .annotate(click_count=models.Count("id"))
+                .order_by("-click_count")
+            )
+
+            # Serialize the URL with logs
+            serializer = URLWithLogsSerializer(url_with_logs)
+
+            # Add aggregated data to the response
+            data = serializer.data
+            data["click_count_by_source"] = list(aggregated_data)  # type:ignore
+
+            return Response(data)
+        except URL.DoesNotExist:
+            # Handle case when short_url is not found
+            return Response(
+                {"error": "Short URL not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class RedirectShortURLView(APIView):

@@ -1,7 +1,7 @@
 import { useUser, useConfig } from './auth'
 import { useLocation, Link } from 'react-router-dom'
 
-function NavBarItem (props) {
+function NavBarItem(props) {
   const location = useLocation()
   const isActive = (props.href && location.pathname.startsWith(props.href)) || (props.to && location.pathname.startsWith(props.to))
   const cls = isActive ? 'nav-link active' : 'nav-link'
@@ -14,7 +14,7 @@ function NavBarItem (props) {
   )
 }
 
-export default function NavBar () {
+export default function NavBar() {
   const user = useUser()
   const config = useConfig()
   const anonNav = (
@@ -34,7 +34,7 @@ export default function NavBar () {
   return (
     <nav className='navbar navbar-expand-md navbar-dark fixed-top bg-dark'>
       <div className='container-fluid'>
-        <Link to='/' className='navbar-brand'>React ❤️ django-allauth</Link>
+        <Link to='/' className='navbar-brand'>URL shortener</Link>
         <button className='navbar-toggler' type='button' data-bs-toggle='collapse' data-bs-target='#navbarCollapse' aria-controls='navbarCollapse' aria-expanded='false' aria-label='Toggle navigation'>
           <span className='navbar-toggler-icon' />
         </button>
