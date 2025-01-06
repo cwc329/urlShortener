@@ -9,6 +9,8 @@ services:
       - 3000:80
     depends_on:
       - backend
+    profiles:
+      - apps
 
   backend:
     env_file:
@@ -24,6 +26,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    profiles:
+      - apps
 
   celery:
     env_file:
@@ -35,6 +39,8 @@ services:
     depends_on:
       - redis
       - backend
+    profiles:
+      - apps
 
   db:
     env_file:
@@ -44,7 +50,7 @@ services:
     environment:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
     volumes:
       - mysql-data:/var/lib/mysql
     ports:
@@ -53,7 +59,7 @@ services:
       test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
       interval: 2s
       timeout: 5s
-      retries: 10
+      retries: 30
 
   redis:
     env_file:
