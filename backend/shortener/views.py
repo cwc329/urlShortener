@@ -5,14 +5,20 @@ from django.core.cache import cache
 from django.db import models, transaction
 from django.http import HttpRequest, HttpResponseRedirect
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import RequestLog, URL
-from .serializers import URLWithLogsSerializer, URLSerializer
+from .serializers import (
+    ClickCountBySourceSerializer,
+    URLWithDetailSerializer,
+    URLSerializer,
+)
 from .tasks import store_request_log
+from shortener import serializers
 
 
 def get_url_hash(long_url: str) -> str:
@@ -22,6 +28,7 @@ def get_url_hash(long_url: str) -> str:
 class ShortUrlView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={201: URLSerializer})
     @transaction.atomic
     def post(self, request: HttpRequest):
         # parse body
@@ -57,6 +64,7 @@ class ShortUrlView(APIView):
 
         return Response(URLSerializer(url).data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(responses=URLSerializer(many=True))
     def get(self, request: HttpRequest):
         user = request.user
         urls = URL.objects.filter(created_by=user)
@@ -67,6 +75,7 @@ class ShortUrlView(APIView):
 class ShortUrlDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=URLWithDetailSerializer)
     def get(self, request: HttpRequest, short_url: str):
         try:
             # find the user
@@ -99,13 +108,14 @@ class ShortUrlDetailView(APIView):
                 .annotate(click_count=models.Count("id"))
                 .order_by("-click_count")
             )
+            url_with_logs.click_count_by_source = aggregated_data  # type:ignore
 
             # Serialize the URL with logs
-            serializer = URLWithLogsSerializer(url_with_logs)
+            serializer = URLWithDetailSerializer(url_with_logs)
 
             # Add aggregated data to the response
             data = serializer.data
-            data["click_count_by_source"] = list(aggregated_data)  # type:ignore
+            # data.click_count_by_source = ClickCountBySourceSerializer(aggregated_data)
 
             return Response(data)
         except URL.DoesNotExist:
@@ -116,6 +126,7 @@ class ShortUrlDetailView(APIView):
 
 
 class RedirectShortURLView(APIView):
+    @extend_schema(responses={302: {"description": "redirect"}})
     def get(self, request, short_url):
         try:
             # Retrieve the long URL from the database

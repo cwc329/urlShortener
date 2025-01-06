@@ -1,5 +1,5 @@
 from django.conf import settings
-from rest_framework import serializers
+from rest_framework import fields, serializers
 from urllib.parse import urlparse
 from .models import RequestLog, URL
 
@@ -12,7 +12,7 @@ class URLSerializer(serializers.ModelSerializer):
         fields = ["id", "long_url", "short_url", "full_short_url"]
         read_only_fields = ["short_url", "full_short_url"]
 
-    def get_full_short_url(self, obj):
+    def get_full_short_url(self, obj) -> str:
         # Add the location prefix before the short URL
         location_prefix = settings.APP_SHORT_URL_PREFIX
         return f"{location_prefix}{obj.short_url}"
@@ -52,9 +52,21 @@ class RequestLogSerializer(serializers.ModelSerializer):
         ]
 
 
-class URLWithLogsSerializer(serializers.ModelSerializer):
+class ClickCountBySourceSerializer(serializers.Serializer):
+    source = serializers.CharField()
+    click_count = serializers.IntegerField()
+
+    class Meta:
+        fields = [
+            "source",
+            "click_count",
+        ]
+
+
+class URLWithDetailSerializer(serializers.ModelSerializer):
     logs = RequestLogSerializer(many=True)
+    click_count_by_source = ClickCountBySourceSerializer(many=True)
 
     class Meta:
         model = URL
-        fields = ["short_url", "long_url", "logs"]
+        fields = ["short_url", "long_url", "logs", "click_count_by_source"]

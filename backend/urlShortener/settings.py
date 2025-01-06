@@ -61,9 +61,22 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.facebook",
     "allauth.socialaccount.providers.google",
+    "drf_spectacular",
+    "drf_spectacular_sidecar",  # required for Django collectstatic discovery
     # url shortener app
     "shortener",
 ]
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Url Shortener API",
+    "DESCRIPTION": "Url Shortener",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_DIST": "SIDECAR",  # shorthand to use the sidecar instead
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
+    # OTHER SETTINGS
+}
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # Must be first
@@ -201,6 +214,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",  # Required for allauth session management
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 HEADLESS_FRONTEND_URLS = {

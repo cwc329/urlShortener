@@ -1,0 +1,156 @@
+openapi: 3.0.3
+info:
+  title: Url Shortener API
+  version: 1.0.0
+  description: Url Shortener
+paths:
+  /shortUrl/{short_url}/:
+    get:
+      operationId: root_retrieve
+      parameters:
+      - in: path
+        name: short_url
+        schema:
+          type: string
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '302':
+          content:
+            application/json:
+              schema:
+                description: redirect
+          description: ''
+  /shortUrl/api/short-urls/:
+    get:
+      operationId: api_short_urls_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/URL'
+          description: ''
+    post:
+      operationId: api_short_urls_create
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URL'
+          description: ''
+  /shortUrl/api/short-urls/{short_url}/:
+    get:
+      operationId: api_short_urls_retrieve
+      parameters:
+      - in: path
+        name: short_url
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/URLWithDetail'
+          description: ''
+components:
+  schemas:
+    ClickCountBySource:
+      type: object
+      properties:
+        source:
+          type: string
+        click_count:
+          type: integer
+      required:
+      - click_count
+      - source
+    RequestLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        long_url:
+          type: string
+          readOnly: true
+        short_url:
+          type: string
+          readOnly: true
+        source:
+          type: string
+          readOnly: true
+        time:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - long_url
+      - short_url
+      - source
+      - time
+    URL:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        long_url:
+          type: string
+        short_url:
+          type: string
+          readOnly: true
+        full_short_url:
+          type: string
+          readOnly: true
+      required:
+      - full_short_url
+      - id
+      - long_url
+      - short_url
+    URLWithDetail:
+      type: object
+      properties:
+        short_url:
+          type: string
+          maxLength: 12
+        long_url:
+          type: string
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequestLog'
+        click_count_by_source:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClickCountBySource'
+      required:
+      - click_count_by_source
+      - logs
+      - long_url
+      - short_url
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
