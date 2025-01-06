@@ -9,7 +9,6 @@ services:
       - 3000:80
     depends_on:
       - backend
-      - db
 
   backend:
     env_file:
@@ -27,11 +26,26 @@ services:
     build:
       context: ./backend/
       dockerfile: Dockerfile
+    command: sh -c "python manage.py migrate && gunicorn --bind 0.0.0.0:8000 urlShortener.wsgi:application"
     ports:
       - 8000:8000
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+
+  celery:
+    env_file:
+      - ./.env
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile
+    command: celery -A urlShortener worker --loglevel=info
+    depends_on:
+      - redis
+      - backend
+
   db:
     env_file:
       - .env
@@ -47,8 +61,18 @@ services:
       - ${DB_PORT}:3306
     healthcheck:
       test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
-      timeout: 20s
+      interval: 5s
+      timeout: 5s
       retries: 10
+
+  redis:
+    env_file:
+      - .env
+    image: redis:6
+    restart: always
+    ports:
+      - ${REDIS_PORT-:6379}:6379
+
   proxy:
     env_file:
       - .env

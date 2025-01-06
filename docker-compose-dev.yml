@@ -1,6 +1,54 @@
 version: '3.8'
 
 services:
+  frontend:
+    build:
+      context: ./frontend/
+      dockerfile: Dockerfile
+    ports:
+      - 3000:80
+    depends_on:
+      - backend
+    profiles:
+      - apps
+
+  backend:
+    env_file:
+      - ./.env
+    environment:
+      DB_HOST: db
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile
+    command: sh -c "python manage.py migrate && gunicorn --bind 0.0.0.0:8000 urlShortener.wsgi:application"
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+      - redis
+    profiles:
+      - apps
+
+  celery:
+    env_file:
+      - ./.env
+    environment:
+      DB_HOST: db
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile
+    depends_on:
+      - redis
+      - backend
+    command: celery -A urlShortener worker --loglevel=info
+    profiles:
+      - apps
+
   db:
     env_file:
       - .env
@@ -15,6 +63,15 @@ services:
       - ./mysql-init:/docker-entrypoint-initdb.d # Initialization scripts
     ports:
       - ${DB_PORT}:3306
+
+  redis:
+    env_file:
+      - .env
+    image: redis:6
+    restart: always
+    ports:
+      - ${REDIS_PORT-:6379}:6379
+
   proxy:
     env_file:
       - .env

@@ -1,7 +1,7 @@
 defaultEntryPoints = ["http"]
 
 [log]
-level = "DEBUG"
+level = "INFO"
 
 [api]
 dashboard = true

@@ -1,8 +1,8 @@
 import hashlib
-import logging
 from datetime import timedelta
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.db import transaction
 from django.http import HttpRequest, HttpResponseRedirect
 from django.utils import timezone
@@ -13,11 +13,10 @@ from rest_framework.views import APIView
 
 from .models import URL, RequestLog
 from .serializers import RequestLogSerializer, URLSerializer
+from .tasks import store_request_log
 
-logger = logging.getLogger(__name__)
 
-
-def get_short_url(long_url: str) -> str:
+def get_url_hash(long_url: str) -> str:
     return hashlib.md5(long_url.encode()).hexdigest()
 
 
@@ -33,7 +32,7 @@ class ShortUrlView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         long_url = serializer.validated_data["long_url"]  # type:ignore
-        hash = get_short_url(long_url)
+        hash = get_url_hash(long_url)
         hashStart = 0
         hashEnd = 6
 
@@ -55,6 +54,8 @@ class ShortUrlView(APIView):
 
         url.save()
 
+        cache.set(url.short_url, url.long_url, timeout=3600)
+
         return Response(URLSerializer(url).data, status=status.HTTP_201_CREATED)
 
     def get(self, request: HttpRequest):
@@ -72,26 +73,31 @@ class RedirectShortURLView(APIView):
     def get(self, request, short_url):
         try:
             # Retrieve the long URL from the database
-            # TODO: use cache
-            url = URL.objects.get(short_url=short_url)
-            source = request.META.get("REMOTE_ADDR")
+            long_url: str = cache.get(short_url)
+            if not long_url:
+                url = URL.objects.only("long_url").get(short_url=short_url)
+                long_url = url.long_url
+                cache.set(short_url, long_url, timeout=3600)
+
+            source = self.get_client_ip(request)
             time = timezone.now()
 
-            # Log and store the redirection
-            logger.info(
-                f"Redirecting short_url: {short_url} to long_url: {url.long_url} at {time} from IP: {source}"
-            )
-            # TODO: use celery to avoid blocking responses because of db operation
-            RequestLog.objects.create(
-                short_url=url,
-                time=time,
-                source=source,
-            )
+            # store the redirection record
+            store_request_log.delay(short_url, source, time)  # type:ignore
 
             # Redirect to the long URL
-            return HttpResponseRedirect(url.long_url)
+            return HttpResponseRedirect(long_url)
         except URL.DoesNotExist:
             # Handle case when short_url is not found
             return Response(
                 {"error": "Short URL not found."}, status=status.HTTP_404_NOT_FOUND
             )
+
+    def get_client_ip(self, request):
+        """
+        Extract the client's IP address from the request.
+        """
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        if x_forwarded_for:
+            return x_forwarded_for.split(",")[0]
+        return request.META.get("REMOTE_ADDR")

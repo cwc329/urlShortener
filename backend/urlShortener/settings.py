@@ -34,7 +34,7 @@ SECURE_PROXY_SSL_HEADER = config(
     default=None,
 )
 
-
+HEADLESS_ONLY = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=str, default="").split(",")  # type:ignore
@@ -107,20 +107,20 @@ DATABASES = {
         "PASSWORD": config("DB_PASSWORD"),
         "HOST": config("DB_HOST", default="127.0.0.1"),
         "PORT": config("DB_PORT", cast=int, default=3306),
+        "CONN_MAX_AGE": 10,
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
-        "ATOMIC_REQUESTS": True,
-        "TEST": {
-            "ENGINE": "django.db.backends.sqlite3",  # Override to SQLite for tests
-            "NAME": ":memory:",  # In-memory SQLite DB for tests
         },
     },
 }
 
-# swtich to sqlite3 when testing
-if "test" in sys.argv:
-    DATABASES["default"] = {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": config("REDIS_URL", default="redis://127.0.0.1:6379"),
+    }
+}
 
 
 # Password validation
@@ -210,12 +210,33 @@ HEADLESS_ONLY = True
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = config("TIME_ZONE", default="UTC")
 
 USE_I18N = True
 
 USE_TZ = True
 
+# Celery Configuration Options
+CELERY_TIMEZONE = config("CELERY_TIMEZONE", default="UTC")
+CELERY_TASK_TRACK_STARTED = config("CELERY_TASK_TRACK_STARTED", cast=bool, default=True)
+CELERY_TASK_TIME_LIMIT = config("CELERY_TASK_TIME_LIMIT", cast=int, default=30 * 60)
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/0")
+CELERY_ACCEPT_CONTENT = config("CELERY_ACCEPT_CONTENT").split(",")  # type:ignore
+CELERY_TASK_SERIALIZER = config("CELERY_TASK_SERIALIZER", default="json")
+CELERY_TASK_ALWAYS_EAGER = False
+
+# Optional: Configure result backend if needed
+CELERY_CACHE_BACKEND = config("CELERY_CACHE_BACKEND", default="default")
+CELERY_RESULT_BACKEND = config(
+    "CELERY_RESULT_BACKEND", default="redis://localhost:6379/1"
+)
+CELERY_RESULT_SERIALIZER = config("CELERY_RESULT_SERIALIZER", default="json")
+
+CELERY_RESULT_EXPIRES = config(
+    "CELERY_RESULT_EXPIRES",
+    cast=int,
+    default=60 * 60,
+)
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -226,3 +247,11 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# test settings
+if "test" in sys.argv:
+    DATABASES["default"] = {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}
+    CACHES["default"] = {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True

@@ -54,6 +54,3 @@ USER myuser
 
 # Expose port
 EXPOSE 8000
-
-# Command to run the application
-CMD ["sh", "-c", "python manage.py migrate && gunicorn --bind 0.0.0.0:8000 urlShortener.wsgi:application"]
